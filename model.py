@@ -15,6 +15,7 @@ class iSLR_Model(nn.Module):
                 img_feature_dim=256,
                 hidden_size=256,
                 partial_bn=True):
+        super(iSLR_Model, self).__init__()
         self.num_class = num_class
         self.modality = modality
         self.dropout = dropout
@@ -87,7 +88,7 @@ class iSLR_Model(nn.Module):
         Override the default train() to freeze the BN parameters
         :return:
         """
-        super(TSN, self).train(mode)
+        super(iSLR_Model, self).train(mode)
         count = 0
         if self._enable_pbn:
             print("Freezing BatchNorm2D except the first one.")
@@ -111,6 +112,7 @@ class iSLR_Model(nn.Module):
         normal_weight = []
         normal_bias = []
         bn = []
+        lstm = []
 
         conv_cnt = 0
         bn_cnt = 0
@@ -139,6 +141,9 @@ class iSLR_Model(nn.Module):
                 # later BN's are frozen
                 if not self._enable_pbn or bn_cnt == 1:
                     bn.extend(list(m.parameters()))
+            elif isinstance(m, torch.nn.modules.rnn.LSTM):
+                lstm.extend(list(m.parameters()))
+
             elif len(m._modules) == 0:
                 if len(list(m.parameters())) > 0:
                     raise ValueError("New atomic module type: {}. Need to give it a learning policy".format(type(m)))
@@ -154,6 +159,8 @@ class iSLR_Model(nn.Module):
              'name': "normal_bias"},
             {'params': bn, 'lr_mult': 1, 'decay_mult': 0,
              'name': "BN scale/shift"},
+            {'params': lstm, 'lr_mult': 1, 'decay_mult': 0,
+             'name': "lstm weights/bias"},             
         ]
 
     def forward(self, input):
@@ -165,7 +172,6 @@ class iSLR_Model(nn.Module):
         if self.dropout > 0:
             base_out = self.new_fc(base_out)
 
-        base_out = base_out.view()
         base_out = base_out.view( (input.size(0),-1,self.img_feature_dim) )
 
         r_out, (h_n, h_c) = self.lstm(base_out)

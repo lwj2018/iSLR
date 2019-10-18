@@ -1,7 +1,12 @@
+import argparse
+import os
+import time
+import shutil
 import torch
 import torch.nn as nn
 import torch.backends.cudnn as cudnn
 import torch.optim as optim
+from torch.nn.utils import clip_grad_norm
 from torch.autograd import Variable
 from torch.utils import data
 import torchvision
@@ -35,6 +40,8 @@ class AverageMeter(object):
         self.count += n
         self.avg = self.sum / self.count
 
+best_prec1 = 0
+
 def main():
     global args, best_prec1
     args = parser.parse_args()
@@ -42,7 +49,7 @@ def main():
     args.store_name = '_'.join(['iSLR',args.modality])
     
     # get model
-    model = iSLR_Model()
+    model = iSLR_Model(args.num_class)
 
     crop_size = model.crop_size
     scale_size = model.scale_size
@@ -65,7 +72,8 @@ def main():
             checkpoint = torch.load(args.resume)
             args.start_epoch = checkpoint['epoch']
             best_prec1 = checkpoint['best_prec1']
-            restore_param = {k:v for k,v in model_dict.items()}
+            restore_param = {k:v for k,v in model_dict.items() if 
+                            (('new_fc' in k) or ('fc_fusion_scales' in k)) }
             model_dict.update(restore_param)
             print(("=> loaded checkpoint '{}' (epoch {})"
                   .format(args.evaluate, checkpoint['epoch'])))
@@ -79,7 +87,7 @@ def main():
     normalize = GroupNormalize(input_mean,input_std)
 
     train_loader = torch.utils.data.DataLoader(
-        iSLR_Dataset(
+        iSLR_Dataset(args.video_root,args.train_file,
             transform=torchvision.transforms.Compose([
                 train_augmentation,
                 Stack(roll=(args.arch in ['BNInception','InceptionV3'])),
@@ -93,7 +101,7 @@ def main():
     )
 
     val_loader = torch.utils.data.DataLoader(
-        iSLR_Dataset(
+        iSLR_Dataset(args.video_root,args.val_file,
             transform=torchvision.transforms.Compose([
                 GroupScale(int(scale_size)),
                 GroupCenterCrop(crop_size),
@@ -110,8 +118,14 @@ def main():
     # define loss function (criterion) and optimizer
     criterion = torch.nn.CrossEntropyLoss().cuda()
 
-    optimizer = torch.optim.SGD()
+    for group in policies:
+        print(('group: {} has {} params, lr_mult: {}, decay_mult: {}'.format(
+            group['name'], len(group['params']), group['lr_mult'], group['decay_mult'])))
 
+    optimizer = torch.optim.SGD(policies,
+                                args.lr,
+                                momentum=args.momentum,
+                                weight_decay=args.weight_decay)
     # get writer
     global writer
     writer = SummaryWriter()
@@ -151,7 +165,7 @@ def train(train_loader, model, criterion, optimizer, epoch):
         # measure data loading time
         data_time.update(time.time() - end)
 
-        target = target.cuda(async=True)
+        target = target.cuda()
         input_var = torch.autograd.Variable(input)
         target_var = torch.autograd.Variable(target)
 
@@ -210,7 +224,7 @@ def validate(val_loader, model, criterion, iter):
 
     end = time.time()
     for i, (input, target) in enumerate(val_loader):
-        target = target.cuda(async=True)
+        target = target.cuda()
         input_var = torch.autograd.Variable(input, volatile=True)
         target_var = torch.autograd.Variable(target, volatile=True)
 
@@ -295,6 +309,7 @@ def collate(batch):
             max_length = length
         images_tensor.append(images)
         targets.append(target)
+        len_list.append(length)
     # fill zeros
     filled_images_tensor = []
     for images, length in zip(images_tensor, len_list):
@@ -303,5 +318,8 @@ def collate(batch):
         filled_images_tensor.append(filled_images)
     images_tensor = filled_images_tensor
     return torch.stack(images_tensor, 0), torch.cat(targets, 0)
+
+if __name__=="__main__":
+    main()
 
         

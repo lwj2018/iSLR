@@ -38,7 +38,7 @@ class iSLR_Dataset(data.Dataset):
     def _load_image(self, directory, idx):
         path_list = os.listdir(osp.join(self.video_root,directory))
         path_list.sort()
-        if self.modality = 'RGB':
+        if self.modality == 'RGB':
             try: 
                 return [Image.open(osp.join(self.video_root,directory,path_list[idx])).convert('RGB')]
             except Exception:
@@ -46,15 +46,15 @@ class iSLR_Dataset(data.Dataset):
                 return [Image.open(osp.join(self.root_path, directory, path_list[0])).convert('RGB')]
         
     def _parse_list(self):
-        tmp = [x.strip().splist(' ') for x in open(self.list_file)]
-        tmp = [item for item in tmp if int(item[1]>0)]
+        tmp = [x.strip().split('\t') for x in open(self.list_file)]
+        tmp = [item for item in tmp if int(item[1])>4]
         self.video_list = [VideoRecord(item) for item in tmp]
         print('video number:%d'%(len(self.video_list)))
 
     def __getitem__(self, index):
         record = self.video_list[index]
         images = list()
-        for i in range(record.num_frames):
+        for i in range(0,record.num_frames,4):
             img = self._load_image(record.path, i)
             images.extend(img)
 
