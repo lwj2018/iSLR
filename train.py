@@ -133,6 +133,8 @@ def main():
     for epoch in range(args.start_epoch, args.epochs):
         adjust_learning_rate(optimizer, epoch , args.lr_steps)
 
+        prec1 = validate(val_loader, model, criterion, epoch)
+
         # train for one epoch
         train(train_loader, model, criterion, optimizer, epoch)
 
@@ -213,7 +215,7 @@ def train(train_loader, model, criterion, optimizer, epoch):
 
 
 
-def validate(val_loader, model, criterion, iter):
+def validate(val_loader, model, criterion, epoch):
     batch_time = AverageMeter()
     losses = AverageMeter()
     top1 = AverageMeter()
