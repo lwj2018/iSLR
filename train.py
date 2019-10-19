@@ -46,7 +46,7 @@ def main():
     global args, best_prec1
     args = parser.parse_args()
 
-    args.store_name = '_'.join(['iSLR',args.modality])
+    args.store_name = '_'.join(['iSLR',args.modality,'class'+str(args.num_class)])
     
     # get model
     model = iSLR_Model(args.num_class)
@@ -133,13 +133,12 @@ def main():
     for epoch in range(args.start_epoch, args.epochs):
         adjust_learning_rate(optimizer, epoch , args.lr_steps)
 
-        prec1 = validate(val_loader, model, criterion, epoch)
 
         # train for one epoch
         train(train_loader, model, criterion, optimizer, epoch)
 
         # evaluate on validation set
-        if (epoch+1) % args.eval_freq == 0 or epoch == args.epochs-1:
+        if (epoch) % args.eval_freq == 0 or epoch == args.epochs-1:
             prec1 = validate(val_loader, model, criterion, epoch)
 
             # remember best prec@1 and save checkpoint

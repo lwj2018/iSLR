@@ -2,24 +2,24 @@ import argparse
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--video_root",type=str,
-                    default="D:\datasets\SLR_dataset\S500_color_video")
+                    default="E:/datasets/SLR_dataset/S500_color_video")
 parser.add_argument("--train_file",type=str,
-                    default="input\\train_list.txt")
+                    default="input/train_list.txt")
 parser.add_argument("--val_file",type=str,
-                    default="input\\val_list.txt")
+                    default="input/val_list.txt")
 parser.add_argument('--root_model', type=str, 
                     default='models')
 parser.add_argument('--arch', type=str, 
                     default='BNInception')
 parser.add_argument('--modality', type=str, default='RGB')
-parser.add_argument('--num_class', type=int, default=500)
+parser.add_argument('--num_class', type=int, default=10)
 # ========================= Learning Configs ==========================
 parser.add_argument('--start_epoch',default=0, type=int)
 parser.add_argument('--epochs', default=10000, type=int, metavar='N',
                     help='number of total epochs to run')
 parser.add_argument('-b', '--batch-size', default=1, type=int,
                     metavar='N', help='mini-batch size (default: 256)')
-parser.add_argument('--lr', '--learning-rate', default=0.0001, type=float,
+parser.add_argument('--lr', '--learning-rate', default=1e-7, type=float,
                     metavar='LR', help='initial learning rate')
 parser.add_argument('--lr_steps', default=[50, 100], type=float, nargs="+",
                     metavar='LRSteps', help='epochs to decay learning rate by 10')
