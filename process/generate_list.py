@@ -19,7 +19,7 @@ for i,color_video_path in enumerate(color_video_path_list):
     color_video_list = os.listdir(abs_color_video_path)
     color_video_list.sort()
     index = int(label)
-    if index<10:
+    if index<2:
         for color_video in color_video_list:
             abs_color_video = osp.join(abs_color_video_path,color_video)
             if(osp.isdir(abs_color_video)):

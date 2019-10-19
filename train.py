@@ -175,7 +175,7 @@ def train(train_loader, model, criterion, optimizer, epoch):
         loss = criterion(output, target_var)
 
         # measure accuracy and record loss
-        prec1, prec5 = accuracy(output.data, target, topk=(1,5))
+        prec1, prec5 = accuracy(output.data, target, topk=(1,2))
         losses.update(loss.item(), input.size(0))
         top1.update(prec1.item(), input.size(0))
         top5.update(prec5.item(), input.size(0))
@@ -185,6 +185,9 @@ def train(train_loader, model, criterion, optimizer, epoch):
         optimizer.zero_grad()
 
         loss.backward()
+        print(model.module)
+        # print(list(model.module.lstm.parameters())[0].mean())
+        # print(list(model.module.lstm.parameters())[0].std())
 
         if args.clip_gradient is not None:
             total_norm = clip_grad_norm(model.parameters(), args.clip_gradient)
@@ -234,7 +237,7 @@ def validate(val_loader, model, criterion, epoch):
         loss = criterion(output, target_var)
 
         # measure accuracy and record loss
-        prec1, prec5 = accuracy(output.data, target, topk=(1,5))
+        prec1, prec5 = accuracy(output.data, target, topk=(1,2))
 
         losses.update(loss.item(), input.size(0))
         top1.update(prec1.item(), input.size(0))
