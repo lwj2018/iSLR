@@ -167,8 +167,12 @@ def train(train_loader, model, criterion, optimizer, epoch):
         data_time.update(time.time() - end)
 
         target = target.cuda()
-        input_var = torch.autograd.Variable(input)
-        target_var = torch.autograd.Variable(target)
+        # input_var = torch.autograd.Variable(input)
+        # target_var = torch.autograd.Variable(target)
+        input.require_grad = True
+        input_var = input
+        target.require_grad = True
+        target_var = target
 
         # compute output
         output = model(input_var)
@@ -185,7 +189,7 @@ def train(train_loader, model, criterion, optimizer, epoch):
         optimizer.zero_grad()
 
         loss.backward()
-        print(model.module)
+        # print(list(model.module.base_model.conv1_7x7_s2.parameters())[0][0,:,:,:])
         # print(list(model.module.lstm.parameters())[0].mean())
         # print(list(model.module.lstm.parameters())[0].std())
 
@@ -229,8 +233,12 @@ def validate(val_loader, model, criterion, epoch):
     end = time.time()
     for i, (input, target) in enumerate(val_loader):
         target = target.cuda()
-        input_var = torch.autograd.Variable(input, volatile=True)
-        target_var = torch.autograd.Variable(target, volatile=True)
+        # input_var = torch.autograd.Variable(input)
+        # target_var = torch.autograd.Variable(target)
+        input.require_grad = True
+        input_var = input
+        target.require_grad = True
+        target_var = target
 
         # compute output
         output = model(input_var)

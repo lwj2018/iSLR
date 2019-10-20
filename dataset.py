@@ -54,7 +54,7 @@ class iSLR_Dataset(data.Dataset):
     def __getitem__(self, index):
         record = self.video_list[index]
         images = list()
-        for i in range(0,record.num_frames,4):
+        for i in range(1,record.num_frames,4):
             img = self._load_image(record.path, i)
             images.extend(img)
 
