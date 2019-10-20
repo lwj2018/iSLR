@@ -6,6 +6,7 @@ import numpy as np
 import numbers
 import math
 import torch
+import matplotlib.pyplot as plt
 
 
 class GroupRandomCrop(object):
@@ -40,7 +41,13 @@ class GroupCenterCrop(object):
         self.worker = torchvision.transforms.CenterCrop(size)
 
     def __call__(self, img_group):
-        return [self.worker(img) for img in img_group]
+        ret_img_group = [self.worker(img) for img in img_group]
+        # n = len(ret_img_group)
+        # for i,image in enumerate(ret_img_group):
+        #     plt.subplot(1,n,i+1)
+        #     plt.imshow(image)
+        # plt.show()
+        return ret_img_group
 
 
 class GroupRandomHorizontalFlip(object):
