@@ -89,7 +89,9 @@ def main():
     train_loader = torch.utils.data.DataLoader(
         iSLR_Dataset(args.video_root,args.train_file,
             transform=torchvision.transforms.Compose([
-                train_augmentation,
+                # train_augmentation,
+                GroupScale(scale_size),
+                GroupCenterCrop(crop_size),
                 Stack(roll=(args.arch in ['BNInception','InceptionV3'])),
                 ToTorchFormatTensor(div=(args.arch not in ['BNInception','InceptionV3'])),
                 normalize,
