@@ -24,14 +24,18 @@ class iSLR_Model(nn.Module):
 
         self._prepare_base_model(base_model)
         feature_dim = self._prepare_new_fc()
-        self._prepare_lstm()
+        self._prepare_fc()
 
         self._enable_pbn = partial_bn
         if partial_bn:
             self.partialBN(True)
 
     def _prepare_new_fc(self):
-        feature_dim = getattr(self.base_model, self.base_model.last_layer_name).in_features
+        print(self.base_model_name)
+        if 'vgg' in self.base_model_name:
+            feature_dim = getattr(self.base_model, self.base_model.last_layer_name)[0].in_features
+        elif self.base_model_name == 'BNInception':
+            feature_dim = getattr(self.base_model, self.base_model.last_layer_name).in_features
         if self.dropout == 0:
             setattr(self.base_model, self.base_model.last_layer_name, nn.Linear(feature_dim, num_class))
             self.new_fc = None
@@ -41,9 +45,10 @@ class iSLR_Model(nn.Module):
 
     def _prepare_base_model(self, base_model):
 
+        self.base_model_name = base_model
         if 'resnet' in base_model or 'vgg' in base_model:
             self.base_model = getattr(torchvision.models, base_model)(True)
-            self.base_model.last_layer_name = 'fc'
+            self.base_model.last_layer_name = 'classifier'
             self.input_size = 224
             self.input_mean = [0.485, 0.456, 0.406]
             self.input_std = [0.229, 0.224, 0.225]
@@ -74,14 +79,8 @@ class iSLR_Model(nn.Module):
         else:
             raise ValueError('Unknown base model: {}'.format(base_model))
 
-    def _prepare_lstm(self):
-        self.lstm = nn.LSTM(
-            input_size=self.img_feature_dim,
-            hidden_size=self.hidden_size,
-            num_layers=1,
-            batch_first=True,
-        )
-        self.final_fc = nn.Linear(self.hidden_size, self.num_class)
+    def _prepare_fc(self):
+        self.final_fc = nn.Linear(16*self.img_feature_dim, self.num_class)
 
     def train(self, mode=True):
         """
@@ -172,11 +171,8 @@ class iSLR_Model(nn.Module):
         if self.dropout > 0:
             base_out = self.new_fc(base_out)
 
-        base_out = base_out.view( (input.size(0),-1,self.img_feature_dim) )
-
-        r_out, (h_n, h_c) = self.lstm(base_out)
-        final_state = r_out[:,-1,:]
-        output = self.final_fc(final_state)
+        base_out = base_out.view( (input.size(0),-1) )
+        output = self.final_fc(base_out)
         
         return output
 

@@ -23,6 +23,10 @@ from tensorboardX import SummaryWriter
 
 from opts import parser
 
+def create_path(path):
+    if not osp.exists(path):
+        os.makedirs(path)
+
 class AverageMeter(object):
     """Computes and stores the average and current value"""
     def __init__(self):
@@ -46,10 +50,12 @@ def main():
     global args, best_prec1
     args = parser.parse_args()
 
-    args.store_name = '_'.join(['iSLR',args.modality,'class'+str(args.num_class)])
+    args.store_name = '_'.join(['iSLR',args.modality,args.arch,\
+                                'class'+str(args.num_class)])
     
-    # get model
-    model = iSLR_Model(args.num_class)
+    create_path(args.root_model)
+    # get model 
+    model = iSLR_Model(args.num_class,base_model=args.arch)
 
     crop_size = model.crop_size
     scale_size = model.scale_size
@@ -89,7 +95,9 @@ def main():
     train_loader = torch.utils.data.DataLoader(
         iSLR_Dataset(args.video_root,args.train_file,
             transform=torchvision.transforms.Compose([
-                train_augmentation,
+                # train_augmentation,
+                GroupScale(int(scale_size)),
+                GroupCenterCrop(crop_size),
                 Stack(roll=(args.arch in ['BNInception','InceptionV3'])),
                 ToTorchFormatTensor(div=(args.arch not in ['BNInception','InceptionV3'])),
                 normalize,
@@ -97,7 +105,7 @@ def main():
         ),
         batch_size=args.batch_size,shuffle=True,
         num_workers=args.workers,pin_memory=True,
-        collate_fn=collate
+        # collate_fn=collate
     )
 
     val_loader = torch.utils.data.DataLoader(
@@ -112,7 +120,7 @@ def main():
         ),
         batch_size=args.batch_size,shuffle=False,
         num_workers=args.workers,pin_memory=True,
-        collate_fn=collate
+        # collate_fn=collate
     )
 
     # define loss function (criterion) and optimizer
@@ -195,8 +203,8 @@ def train(train_loader, model, criterion, optimizer, epoch):
 
         if args.clip_gradient is not None:
             total_norm = clip_grad_norm(model.parameters(), args.clip_gradient)
-            # if total_norm > args.clip_gradient:
-                # print("clipping gradient: {} with coef {}".format(total_norm, args.clip_gradient / total_norm))
+            if total_norm > args.clip_gradient:
+                print("clipping gradient: {} with coef {}".format(total_norm, args.clip_gradient / total_norm))
 
         optimizer.step()
 
