@@ -9,10 +9,11 @@ parser.add_argument("--val_file",type=str,
                     default="input/val_list.txt")
 parser.add_argument('--root_model', type=str, 
                     default='models')
+# parser.add_argument('--arch', type=str, default='resnet34')
 parser.add_argument('--arch', type=str, default='BNInception')
-# parser.add_argument('--arch', type=str, default='vgg16')
 parser.add_argument('--modality', type=str, default='RGB')
-parser.add_argument('--num_class', type=int, default=2)
+parser.add_argument('--num_class', type=int, default=100)
+parser.add_argument('--hidden_unit', type=int, default=1024)
 # ========================= Learning Configs ==========================
 parser.add_argument('--start_epoch',default=0, type=int)
 parser.add_argument('--epochs', default=10000, type=int, metavar='N',
@@ -32,7 +33,7 @@ parser.add_argument('--clip-gradient', '--gd', default=20, type=float,
 parser.add_argument('--no_partialbn', '--npb', default=False, action="store_true")
 
 # ========================= Monitor Configs ==========================
-parser.add_argument('--print-freq', '-p', default=10, type=int,
+parser.add_argument('--print-freq', '-p', default=50, type=int,
                     metavar='N', help='print frequency (default: 10)')
 parser.add_argument('--eval-freq', '-ef', default=5, type=int,
                     metavar='N', help='evaluation frequency (default: 5)')
@@ -43,3 +44,7 @@ parser.add_argument('-j', '--workers', default=1, type=int, metavar='N',
                     help='number of data loading workers (default: 4)')
 parser.add_argument('--resume', default='', type=str, metavar='PATH',
                     help='path to latest checkpoint (default: none)')
+parser.add_argument('--val_resume', default='models\iSLR_RGB_BNInception_class100_hidden512_best.pth.tar', type=str, metavar='PATH',
+                    help='path to latest checkpoint (default: none)')
+parser.add_argument('-e', '--evaluate', dest='evaluate', action='store_true',
+                    help='evaluate model on validation set')

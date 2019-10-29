@@ -9,6 +9,7 @@ from transforms import *
 class iSLR_Model(nn.Module):
 
     def __init__(self, num_class,
+                hidden_unit=512,
                 modality='RGB',
                 base_model='BNInception',
                 dropout=0.8,
@@ -17,6 +18,7 @@ class iSLR_Model(nn.Module):
                 partial_bn=True):
         super(iSLR_Model, self).__init__()
         self.num_class = num_class
+        self.hidden_unit = hidden_unit
         self.modality = modality
         self.dropout = dropout
         self.img_feature_dim = img_feature_dim
@@ -31,9 +33,10 @@ class iSLR_Model(nn.Module):
             self.partialBN(True)
 
     def _prepare_new_fc(self):
-        print(self.base_model_name)
         if 'vgg' in self.base_model_name:
             feature_dim = getattr(self.base_model, self.base_model.last_layer_name)[0].in_features
+        elif 'res' in self.base_model_name:
+            feature_dim = getattr(self.base_model, self.base_model.last_layer_name).in_features            
         elif self.base_model_name == 'BNInception':
             feature_dim = getattr(self.base_model, self.base_model.last_layer_name).in_features
         if self.dropout == 0:
@@ -46,9 +49,16 @@ class iSLR_Model(nn.Module):
     def _prepare_base_model(self, base_model):
 
         self.base_model_name = base_model
-        if 'resnet' in base_model or 'vgg' in base_model:
+        if 'vgg' in base_model:
             self.base_model = getattr(torchvision.models, base_model)(True)
             self.base_model.last_layer_name = 'classifier'
+            self.input_size = 224
+            self.input_mean = [0.485, 0.456, 0.406]
+            self.input_std = [0.229, 0.224, 0.225]
+
+        elif 'resnet' in base_model:
+            self.base_model = getattr(torchvision.models, base_model)(True)
+            self.base_model.last_layer_name = 'fc'
             self.input_size = 224
             self.input_mean = [0.485, 0.456, 0.406]
             self.input_std = [0.229, 0.224, 0.225]
@@ -80,7 +90,8 @@ class iSLR_Model(nn.Module):
             raise ValueError('Unknown base model: {}'.format(base_model))
 
     def _prepare_fc(self):
-        self.final_fc = nn.Linear(16*self.img_feature_dim, self.num_class)
+        self.first_fc = nn.Linear(16*self.img_feature_dim, self.hidden_unit)
+        self.final_fc = nn.Linear(self.hidden_unit, self.num_class)
 
     def train(self, mode=True):
         """
@@ -172,6 +183,7 @@ class iSLR_Model(nn.Module):
             base_out = self.new_fc(base_out)
 
         base_out = base_out.view( (input.size(0),-1) )
+        base_out = self.first_fc(base_out)
         output = self.final_fc(base_out)
         
         return output

@@ -38,9 +38,11 @@ class iSLR_Dataset(data.Dataset):
     def _load_image(self, directory, idx):
         path_list = os.listdir(osp.join(self.video_root,directory))
         path_list.sort()
+        image_name = osp.join(self.video_root,directory,path_list[idx])
+        # if idx==0: print(image_name)
         if self.modality == 'RGB':
             try: 
-                return [Image.open(osp.join(self.video_root,directory,path_list[idx])).convert('RGB')]
+                return [Image.open(image_name).convert('RGB')]
             except Exception:
                 print('error loading image:', osp.join(self.video_root, directory, path_list[idx]))
                 return [Image.open(osp.join(self.video_root, directory, path_list[0])).convert('RGB')]

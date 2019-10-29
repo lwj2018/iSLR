@@ -51,11 +51,12 @@ def main():
     args = parser.parse_args()
 
     args.store_name = '_'.join(['iSLR',args.modality,args.arch,\
-                                'class'+str(args.num_class)])
+                                'class'+str(args.num_class),\
+                                'hidden'+str(args.hidden_unit)])
     
     create_path(args.root_model)
     # get model 
-    model = iSLR_Model(args.num_class,base_model=args.arch)
+    model = iSLR_Model(args.num_class,hidden_unit=args.hidden_unit,base_model=args.arch)
 
     crop_size = model.crop_size
     scale_size = model.scale_size
@@ -136,6 +137,7 @@ def main():
                                 weight_decay=args.weight_decay)
     # get writer
     global writer
+    # writer = SummaryWriter(logdir='runs/'+args.store_name)
     writer = SummaryWriter()
 
     for epoch in range(args.start_epoch, args.epochs):
@@ -147,7 +149,7 @@ def main():
 
         # evaluate on validation set
         if (epoch) % args.eval_freq == 0 or epoch == args.epochs-1:
-            prec1 = validate(val_loader, model, criterion, epoch)
+            prec1 = validate(val_loader, model, criterion, epoch // args.eval_freq)
 
             # remember best prec@1 and save checkpoint
             is_best = prec1>best_prec1
@@ -187,7 +189,7 @@ def train(train_loader, model, criterion, optimizer, epoch):
         loss = criterion(output, target_var)
 
         # measure accuracy and record loss
-        prec1, prec5 = accuracy(output.data, target, topk=(1,2))
+        prec1, prec5 = accuracy(output.data, target, topk=(1,5))
         losses.update(loss.item(), input.size(0))
         top1.update(prec1.item(), input.size(0))
         top5.update(prec5.item(), input.size(0))
@@ -214,11 +216,11 @@ def train(train_loader, model, criterion, optimizer, epoch):
 
         if i % args.print_freq == 0:
             output = ('Epoch: [{0}][{1}/{2}], lr: {lr:.7f}\t'
-                    'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
-                    'Data {data_time.val:.3f} ({data_time.avg:.3f})\t'
+                    'Time {batch_time.val:.3f}s ({batch_time.avg:.3f}s)\t'
+                    'Data {data_time.val:.3f}s ({data_time.avg:.3f}s)\t'
                     'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
-                    'Prec@1 {top1.val:.3f} ({top1.avg:.3f})\t'
-                    'Prec@5 {top5.val:.3f} ({top5.avg:.3f})'.format(
+                    'Prec@1 {top1.val:.3f}% ({top1.avg:.3f}%)\t'
+                    'Prec@5 {top5.val:.3f}% ({top5.avg:.3f}%)'.format(
                         epoch, i, len(train_loader), batch_time=batch_time,
                         data_time=data_time, loss=losses, top1=top1, top5=top5, 
                         lr=optimizer.param_groups[-1]['lr']))
@@ -253,7 +255,7 @@ def validate(val_loader, model, criterion, epoch):
         loss = criterion(output, target_var)
 
         # measure accuracy and record loss
-        prec1, prec5 = accuracy(output.data, target, topk=(1,2))
+        prec1, prec5 = accuracy(output.data, target, topk=(1,5))
 
         losses.update(loss.item(), input.size(0))
         top1.update(prec1.item(), input.size(0))
@@ -265,10 +267,10 @@ def validate(val_loader, model, criterion, epoch):
 
         if i % args.print_freq == 0:
             output = ('Test: [{0}/{1}]\t'
-                  'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
+                  'Time {batch_time.val:.3f}s ({batch_time.avg:.3f}s)\t'
                   'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
-                  'Prec@1 {top1.val:.3f} ({top1.avg:.3f})\t'
-                  'Prec@5 {top5.val:.3f} ({top5.avg:.3f})'.format(
+                  'Prec@1 {top1.val:.3f}% ({top1.avg:.3f}%)\t'
+                  'Prec@5 {top5.val:.3f}% ({top5.avg:.3f}%)'.format(
                    i, len(val_loader), batch_time=batch_time, loss=losses,
                    top1=top1, top5=top5))
             print(output)
