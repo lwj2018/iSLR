@@ -5,6 +5,7 @@ def create_path(path):
     if not osp.exists(path):
         os.makedirs(path)
 
+num_class = 100
 color_video_root = "E:\datasets\SLR_dataset\S500_color_video"
 train_list = open("../input/train_list.txt","w")
 val_list = open("../input/val_list.txt","w")
@@ -19,7 +20,7 @@ for i,color_video_path in enumerate(color_video_path_list):
     color_video_list = os.listdir(abs_color_video_path)
     color_video_list.sort()
     index = int(label)
-    if index<100:
+    if index<num_class:
         for color_video in color_video_list:
             abs_color_video = osp.join(abs_color_video_path,color_video)
             if(osp.isdir(abs_color_video)):

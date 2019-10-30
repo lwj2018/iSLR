@@ -58,7 +58,8 @@ def main():
                                 'class'+str(args.num_class)])
     
     # get model 
-    model = iSLR_Model(args.num_class,base_model=args.arch)
+    model = iSLR_Model(args.num_class,
+                        hidden_unit=args.hidden_unit,base_model=args.arch)
 
     crop_size = model.crop_size
     scale_size = model.scale_size
@@ -83,7 +84,7 @@ def main():
             best_prec1 = checkpoint['best_prec1']
             # restore_param = {k:v for k,v in model_dict.items()}
             # model_dict.update(restore_param)
-            model.load_state_dict(checkpoint)
+            model.load_state_dict(checkpoint['state_dict'])
             print(("=> loaded checkpoint '{}' (epoch {}) (best prec {})"
                   .format(args.evaluate, checkpoint['epoch'], best_prec1)))
 

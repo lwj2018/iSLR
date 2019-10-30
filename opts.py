@@ -10,7 +10,8 @@ parser.add_argument("--val_file",type=str,
 parser.add_argument('--root_model', type=str, 
                     default='models')
 # parser.add_argument('--arch', type=str, default='resnet34')
-parser.add_argument('--arch', type=str, default='BNInception')
+# parser.add_argument('--arch', type=str, default='BNInception')
+parser.add_argument('--arch', type=str, default='Resnet_cbam')
 parser.add_argument('--modality', type=str, default='RGB')
 parser.add_argument('--num_class', type=int, default=100)
 parser.add_argument('--hidden_unit', type=int, default=1024)
@@ -44,7 +45,7 @@ parser.add_argument('-j', '--workers', default=1, type=int, metavar='N',
                     help='number of data loading workers (default: 4)')
 parser.add_argument('--resume', default='', type=str, metavar='PATH',
                     help='path to latest checkpoint (default: none)')
-parser.add_argument('--val_resume', default='models\iSLR_RGB_BNInception_class100_hidden512_best.pth.tar', type=str, metavar='PATH',
+parser.add_argument('--val_resume', default='models\iSLR_RGB_BNInception_class100_hidden1024_best.pth.tar', type=str, metavar='PATH',
                     help='path to latest checkpoint (default: none)')
 parser.add_argument('-e', '--evaluate', dest='evaluate', action='store_true',
                     help='evaluate model on validation set')

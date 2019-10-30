@@ -5,6 +5,7 @@ from torchvision import models
 from torch.nn import functional as F
 from torch.autograd import Variable
 from transforms import *
+from attention_model import *
 
 class iSLR_Model(nn.Module):
 
@@ -39,6 +40,9 @@ class iSLR_Model(nn.Module):
             feature_dim = getattr(self.base_model, self.base_model.last_layer_name).in_features            
         elif self.base_model_name == 'BNInception':
             feature_dim = getattr(self.base_model, self.base_model.last_layer_name).in_features
+        elif self.base_model_name == 'Resnet_cbam':
+            # ???
+            feature_dim = 256
         if self.dropout == 0:
             setattr(self.base_model, self.base_model.last_layer_name, nn.Linear(feature_dim, num_class))
             self.new_fc = None
@@ -62,6 +66,12 @@ class iSLR_Model(nn.Module):
             self.input_size = 224
             self.input_mean = [0.485, 0.456, 0.406]
             self.input_std = [0.229, 0.224, 0.225]
+
+        elif base_model == 'Resnet_cbam':
+            self.base_model = ResidualNet()
+            self.input_size = 224
+            self.input_mean = [0.485, 0.456, 0.406]
+            self.input_std = [0.229, 0.224, 0.225]            
 
         elif base_model == 'BNInception':
             import model_zoo
@@ -89,9 +99,22 @@ class iSLR_Model(nn.Module):
         else:
             raise ValueError('Unknown base model: {}'.format(base_model))
 
+        # DEBUG
+        print(self.base_model)
+
     def _prepare_fc(self):
-        self.first_fc = nn.Linear(16*self.img_feature_dim, self.hidden_unit)
-        self.final_fc = nn.Linear(self.hidden_unit, self.num_class)
+        # if self.hidden_unit > 0:
+        #     self.final_fc = nn.Sequential(
+        #         nn.Linear(16*self.img_feature_dim, self.hidden_unit),
+        #         nn.Linear(self.hidden_unit, self.num_class)
+        #     )
+        # else:
+        #     self.final_fc = nn.Linear(16*self.img_feature_dim, self.num_class)
+        if self.hidden_unit>0:
+            self.first_fc = nn.Linear(16*self.img_feature_dim, self.hidden_unit)
+            self.final_fc = nn.Linear(self.hidden_unit, self.num_class)
+        else:
+            self.final_fc = nn.Linear(16*self.img_feature_dim, self.num_class)
 
     def train(self, mode=True):
         """
@@ -183,7 +206,8 @@ class iSLR_Model(nn.Module):
             base_out = self.new_fc(base_out)
 
         base_out = base_out.view( (input.size(0),-1) )
-        base_out = self.first_fc(base_out)
+        if self.first_fc is not None:
+            base_out = self.first_fc(base_out)
         output = self.final_fc(base_out)
         
         return output
