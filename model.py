@@ -5,7 +5,16 @@ from torchvision import models
 from torch.nn import functional as F
 from torch.autograd import Variable
 from transforms import *
-from attention_model import *
+from attention_model import ResidualNet
+
+
+model_urls = {
+    'resnet18': 'https://download.pytorch.org/models/resnet18-5c106cde.pth',
+    'resnet34': 'https://download.pytorch.org/models/resnet34-333f7ec4.pth',
+    'resnet50': 'https://download.pytorch.org/models/resnet50-19c8e357.pth',
+    'resnet101': 'https://download.pytorch.org/models/resnet101-5d3b4d8f.pth',
+    'resnet152': 'https://download.pytorch.org/models/resnet152-b121ed2d.pth',
+}
 
 class iSLR_Model(nn.Module):
 
@@ -41,11 +50,12 @@ class iSLR_Model(nn.Module):
         elif self.base_model_name == 'BNInception':
             feature_dim = getattr(self.base_model, self.base_model.last_layer_name).in_features
         elif self.base_model_name == 'Resnet_cbam':
-            # ???
-            feature_dim = 256
+            feature_dim = 1024   # 加入cbam的resnet最后一层的特征数
         if self.dropout == 0:
             setattr(self.base_model, self.base_model.last_layer_name, nn.Linear(feature_dim, num_class))
             self.new_fc = None
+        elif self.base_model_name == 'Resnet_cbam':
+            self.new_fc = nn.Linear(feature_dim, self.img_feature_dim)
         else:
             setattr(self.base_model, self.base_model.last_layer_name, nn.Dropout(p=self.dropout))
             self.new_fc = nn.Linear(feature_dim, self.img_feature_dim)
@@ -69,6 +79,9 @@ class iSLR_Model(nn.Module):
 
         elif base_model == 'Resnet_cbam':
             self.base_model = ResidualNet()
+            import torch.utils.model_zoo as model_zoo
+            # self.base_model.load_state_dict(model_zoo.load_url(
+            #     model_urls['resnet34']))
             self.input_size = 224
             self.input_mean = [0.485, 0.456, 0.406]
             self.input_std = [0.229, 0.224, 0.225]            
@@ -100,7 +113,7 @@ class iSLR_Model(nn.Module):
             raise ValueError('Unknown base model: {}'.format(base_model))
 
         # DEBUG
-        print(self.base_model)
+        # print(self.base_model)
 
     def _prepare_fc(self):
         # if self.hidden_unit > 0:

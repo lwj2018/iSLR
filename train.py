@@ -137,8 +137,8 @@ def main():
                                 weight_decay=args.weight_decay)
     # get writer
     global writer
-    # writer = SummaryWriter(logdir='runs/'+args.store_name)
-    writer = SummaryWriter()
+    writer = SummaryWriter(logdir='runs/'+args.store_name)
+    # writer = SummaryWriter()
 
     for epoch in range(args.start_epoch, args.epochs):
         adjust_learning_rate(optimizer, epoch , args.lr_steps)

@@ -9,11 +9,13 @@ parser.add_argument("--val_file",type=str,
                     default="input/val_list.txt")
 parser.add_argument('--root_model', type=str, 
                     default='models')
+
 # parser.add_argument('--arch', type=str, default='resnet34')
 # parser.add_argument('--arch', type=str, default='BNInception')
 parser.add_argument('--arch', type=str, default='Resnet_cbam')
+
 parser.add_argument('--modality', type=str, default='RGB')
-parser.add_argument('--num_class', type=int, default=100)
+parser.add_argument('--num_class', type=int, default=5)
 parser.add_argument('--hidden_unit', type=int, default=1024)
 # ========================= Learning Configs ==========================
 parser.add_argument('--start_epoch',default=0, type=int)

@@ -1,3 +1,5 @@
 SLR_dataset
 models
 runs
+__pycache__
+experiment_result
