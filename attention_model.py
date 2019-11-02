@@ -79,6 +79,7 @@ class SpatialGate(nn.Module):
         x_compress = self.compress(x)
         x_out = self.spatial(x_compress)
         scale = torch.sigmoid(x_out) # broadcasting
+        self.scale = scale
         return x * scale
 
 class CBAM(nn.Module):
@@ -92,6 +93,7 @@ class CBAM(nn.Module):
         x_out = self.ChannelGate(x)
         if not self.no_spatial:
             x_out = self.SpatialGate(x_out)
+        self.attention_map = self.SpatialGate.scale
         return x_out
 
 

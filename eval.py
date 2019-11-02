@@ -24,6 +24,7 @@ import time
 from tensorboardX import SummaryWriter
 
 from opts import parser
+from viz_utils import attentionmap_visualize
 
 def create_path(path):
     if not osp.exists(path):
@@ -142,16 +143,18 @@ def main():
     # global writer
     # writer = SummaryWriter(logdir='runs/'+args.store_name)
 
-    for epoch in range(args.start_epoch, args.epochs):
-        adjust_learning_rate(optimizer, epoch , args.lr_steps)
+    prec1 = validate(val_loader, model, criterion, 0)
+
+    # for epoch in range(args.start_epoch, args.epochs):
+    #     adjust_learning_rate(optimizer, epoch , args.lr_steps)
 
 
-        # train for one epoch
-        train(train_loader, model, criterion, optimizer, epoch)
+    #     # train for one epoch
+    #     train(train_loader, model, criterion, optimizer, epoch)
 
-        # evaluate on validation set
-        if (epoch) % args.eval_freq == 0 or epoch == args.epochs-1:
-            prec1 = validate(val_loader, model, criterion, epoch // args.eval_freq)
+    #     # evaluate on validation set
+    #     if (epoch) % args.eval_freq == 0 or epoch == args.epochs-1:
+    #         prec1 = validate(val_loader, model, criterion, epoch // args.eval_freq)
 
 
 def train(train_loader, model, criterion, optimizer, epoch):
@@ -246,6 +249,10 @@ def validate(val_loader, model, criterion, epoch):
         # compute output
         output = model(input_var)
         loss = criterion(output, target_var)
+
+        # plot attention map on input image
+        attention_map = model.module.attention_map
+        attentionmap_visualize(input, attention_map)
 
         # measure accuracy and record loss
         prec1, prec5 = accuracy(output.data, target, topk=(1,5))
