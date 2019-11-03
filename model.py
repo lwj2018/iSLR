@@ -5,8 +5,7 @@ from torchvision import models
 from torch.nn import functional as F
 from torch.autograd import Variable
 from transforms import *
-from attention_model import ResidualNet
-from resnet import resnet34, model_urls
+from model_resnet import ResidualNet
 
 class iSLR_Model(nn.Module):
 
@@ -68,12 +67,13 @@ class iSLR_Model(nn.Module):
             self.input_std = [0.229, 0.224, 0.225]
 
         elif base_model == 'Resnet_cbam':
-            self.base_model = resnet34(False)
-            import torch.utils.model_zoo as model_zoo
-            checkpoint = model_zoo.load_url(model_urls['resnet34'])
-            restore_param = {k: v for k, v in checkpoint.items() if 
-                            'cbam' not in k}
-            self.base_model.state_dict().update(restore_param)
+            self.base_model = ResidualNet("ImageNet",50,1000,'CBAM')
+            checkpoint = torch.load("models/RESNET50_CBAM_new_name_wrap.pth")
+            # restore_param = {k: v for k, v in checkpoint.items()}
+            # self.base_model.state_dict().update(restore_param)
+            state_dict = {".".join(k.split(".")[1:]):v
+                            for k,v in checkpoint['state_dict'].items()}
+            self.base_model.load_state_dict(state_dict)
             self.base_model.last_layer_name = 'fc'
             self.input_size = 224
             self.input_mean = [0.485, 0.456, 0.406]
@@ -109,13 +109,6 @@ class iSLR_Model(nn.Module):
         # print(self.base_model)
 
     def _prepare_fc(self):
-        # if self.hidden_unit > 0:
-        #     self.final_fc = nn.Sequential(
-        #         nn.Linear(16*self.img_feature_dim, self.hidden_unit),
-        #         nn.Linear(self.hidden_unit, self.num_class)
-        #     )
-        # else:
-        #     self.final_fc = nn.Linear(16*self.img_feature_dim, self.num_class)
         if self.hidden_unit>0:
             self.first_fc = nn.Linear(16*self.img_feature_dim, self.hidden_unit)
             self.final_fc = nn.Linear(self.hidden_unit, self.num_class)
@@ -206,8 +199,8 @@ class iSLR_Model(nn.Module):
         if self.modality == 'RGB':
             sample_len = 3
         base_out = self.base_model(input.view( (-1, sample_len) + input.size()[-2:]) )
-        if self.base_model_name=="Resnet_cbam":
-            self.attention_map = self.base_model.attention_map
+        # if self.base_model_name=="Resnet_cbam":
+        #     self.attention_map = self.base_model.attention_map
 
         if self.dropout > 0:
             base_out = self.new_fc(base_out)
