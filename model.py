@@ -141,6 +141,8 @@ class iSLR_Model(nn.Module):
     def get_optim_policies(self):
         first_conv_weight = []
         first_conv_bias = []
+        cbam_conv_weight = []
+        cbam_conv_bias = []
         normal_weight = []
         normal_bias = []
         bn = []
@@ -148,6 +150,12 @@ class iSLR_Model(nn.Module):
 
         conv_cnt = 0
         bn_cnt = 0
+        for key in self.state_dict():
+            if "conv" in key and "cbam" in key:
+                if key.split(".")[-1]=="weight":
+                    cbam_conv_weight.append(self.state_dict()[key])
+                elif key.split(".")[-1]=="bias":
+                    cbam_conv_bias.append(self.state_dict()[key])
         for m in self.modules():
             if isinstance(m, torch.nn.Conv2d) or isinstance(m, torch.nn.Conv1d):
                 ps = list(m.parameters())
@@ -185,6 +193,10 @@ class iSLR_Model(nn.Module):
              'name': "first_conv_weight"},
             {'params': first_conv_bias, 'lr_mult': 2, 'decay_mult': 0,
              'name': "first_conv_bias"},
+            {'params': cbam_conv_weight, 'lr_mult': 1, 'decay_mult': 5,
+             'name': "cbam_conv_weight"},
+            {'params': cbam_conv_bias, 'lr_mult': 2, 'decay_mult': 0,
+             'name': "cbam_conv_bias"},
             {'params': normal_weight, 'lr_mult': 1, 'decay_mult': 1,
              'name': "normal_weight"},
             {'params': normal_bias, 'lr_mult': 2, 'decay_mult': 0,

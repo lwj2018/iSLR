@@ -80,6 +80,7 @@ class SpatialGate(nn.Module):
         x_out = self.spatial(x_compress)
         scale = F.sigmoid(x_out) # broadcasting
         self.attention_map = scale
+        self.x_out = x_out
         return x * scale
 
 class CBAM(nn.Module):

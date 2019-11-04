@@ -28,6 +28,7 @@ def attentionmap_visualize(input, attention_map):
         image = image*input_std+input_mean
         # 缩放attention map
         att_map = np.squeeze(att_map)
+        att_map = normalize(att_map)
         att_map = Image.fromarray(att_map)
         height = image.shape[0]
         width = image.shape[1]
@@ -35,7 +36,7 @@ def attentionmap_visualize(input, attention_map):
         att_map = np.array(att_map)
         no_trans_map,  map_on_image = apply_colormap_on_image(image, att_map, 'hsv')
         plt.subplot(4,4,i+1)
-        plt.imshow(image)
+        plt.imshow(map_on_image)
     plt.show()
 
 def apply_colormap_on_image(org_im, activation, colormap_name):
@@ -62,3 +63,7 @@ def apply_colormap_on_image(org_im, activation, colormap_name):
     heatmap_on_image = Image.alpha_composite(heatmap_on_image, org_im.convert('RGBA'))
     heatmap_on_image = Image.alpha_composite(heatmap_on_image, heatmap)
     return no_trans_heatmap, heatmap_on_image
+
+def normalize(att_map):
+    att_map = (att_map-att_map.min())/(att_map.max()-att_map.min())
+    return att_map

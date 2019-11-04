@@ -129,18 +129,26 @@ class ResNet(nn.Module):
 
         self.fc = nn.Linear(512 * block.expansion, num_classes)
 
-        init.kaiming_normal(self.fc.weight)
-        for key in self.state_dict():
-            if key.split('.')[-1]=="weight":
-                if "conv" in key:
-                    init.kaiming_normal(self.state_dict()[key], mode='fan_out')
-                if "bn" in key:
-                    if "SpatialGate" in key:
-                        self.state_dict()[key][...] = 0
-                    else:
-                        self.state_dict()[key][...] = 1
-            elif key.split(".")[-1]=='bias':
-                self.state_dict()[key][...] = 0
+        for m in self.modules():
+            if isinstance(m, nn.Conv2d):
+                n = m.kernel_size[0] * m.kernel_size[1] * m.out_channels
+                m.weight.data.normal_(0, math.sqrt(2. / n))
+            elif isinstance(m, nn.BatchNorm2d):
+                m.weight.data.fill_(1)
+                m.bias.data.zero_()
+
+        # init.kaiming_normal(self.fc.weight)
+        # for key in self.state_dict():
+        #     if key.split('.')[-1]=="weight":
+        #         if "conv" in key:
+        #             init.kaiming_normal(self.state_dict()[key], mode='fan_out')
+        #         if "bn" in key:
+        #             if "SpatialGate" in key:
+        #                 self.state_dict()[key][...] = 0
+        #             else:
+        #                 self.state_dict()[key][...] = 1
+        #     elif key.split(".")[-1]=='bias':
+        #         self.state_dict()[key][...] = 0
 
     def _make_layer(self, block, planes, blocks, stride=1, att_type=None):
         downsample = None
@@ -182,7 +190,7 @@ class ResNet(nn.Module):
 
         x = self.layer4(x)
 
-        self.attention_map = self.blocks[0].attention_map
+        self.attention_map = self.blocks[1].attention_map
 
         if self.network_type == "ImageNet":
             x = self.avgpool(x)

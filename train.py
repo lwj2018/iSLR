@@ -189,6 +189,8 @@ def train(train_loader, model, criterion, optimizer, epoch):
         output = model(input_var)
         loss = criterion(output, target_var)
 
+        attention_map = model.module.base_model.attention_map
+
         # measure accuracy and record loss
         prec1, prec5 = accuracy(output.data, target, topk=(1,5))
         losses.update(loss.item(), input.size(0))
@@ -200,9 +202,7 @@ def train(train_loader, model, criterion, optimizer, epoch):
         optimizer.zero_grad()
 
         loss.backward()
-        # print(list(model.module.base_model.conv1_7x7_s2.parameters())[0][0,:,:,:])
-        # print(list(model.module.lstm.parameters())[0].mean())
-        # print(list(model.module.lstm.parameters())[0].std())
+        # print(attention_map)
 
         if args.clip_gradient is not None:
             total_norm = clip_grad_norm(model.parameters(), args.clip_gradient)

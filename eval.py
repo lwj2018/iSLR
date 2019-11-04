@@ -108,7 +108,7 @@ def main():
                 normalize,
             ])
         ),
-        batch_size=args.batch_size,shuffle=True,
+        batch_size=args.batch_size,shuffle=False,
         num_workers=args.workers,pin_memory=True,
         # collate_fn=collate
     )
@@ -143,7 +143,7 @@ def main():
     # global writer
     # writer = SummaryWriter(logdir='runs/'+args.store_name)
 
-    prec1 = validate(val_loader, model, criterion, 0)
+    prec1 = validate(train_loader, model, criterion, 0)
 
     # for epoch in range(args.start_epoch, args.epochs):
     #     adjust_learning_rate(optimizer, epoch , args.lr_steps)
@@ -251,7 +251,7 @@ def validate(val_loader, model, criterion, epoch):
         loss = criterion(output, target_var)
 
         # plot attention map on input image
-        attention_map = model.module.attention_map
+        attention_map = model.module.base_model.attention_map
         attentionmap_visualize(input, attention_map)
 
         # measure accuracy and record loss
