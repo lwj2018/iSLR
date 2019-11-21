@@ -189,7 +189,7 @@ def train(train_loader, model, criterion, optimizer, epoch):
         output = model(input_var)
         loss = criterion(output, target_var)
 
-        attention_map = model.module.base_model.attention_map
+        # attention_map = model.module.base_model.attention_map
 
         # measure accuracy and record loss
         prec1, prec5 = accuracy(output.data, target, topk=(1,5))

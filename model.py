@@ -6,6 +6,8 @@ from torch.nn import functional as F
 from torch.autograd import Variable
 from transforms import *
 from model_resnet import ResidualNet
+from skeleton_model import skeleton_model
+from cnn_model import base_cnn
 
 class iSLR_Model(nn.Module):
 
@@ -102,6 +104,12 @@ class iSLR_Model(nn.Module):
             self.input_size = 299
             self.input_mean = [0.5]
             self.input_std = [0.5]
+
+        elif  base_model=='base':
+            self.base_model=base_cnn(self.num_class)
+            self.input_size = 224
+            self.input_mean = [0.485, 0.456, 0.406]
+            self.input_std = [0.229, 0.224, 0.225]          
         else:
             raise ValueError('Unknown base model: {}'.format(base_model))
 
@@ -193,9 +201,9 @@ class iSLR_Model(nn.Module):
              'name': "first_conv_weight"},
             {'params': first_conv_bias, 'lr_mult': 2, 'decay_mult': 0,
              'name': "first_conv_bias"},
-            {'params': cbam_conv_weight, 'lr_mult': 1, 'decay_mult': 5,
+            {'params': cbam_conv_weight, 'lr_mult': 1, 'decay_mult': 2,
              'name': "cbam_conv_weight"},
-            {'params': cbam_conv_bias, 'lr_mult': 2, 'decay_mult': 0,
+            {'params': cbam_conv_bias, 'lr_mult': 2, 'decay_mult': 2,
              'name': "cbam_conv_bias"},
             {'params': normal_weight, 'lr_mult': 1, 'decay_mult': 1,
              'name': "normal_weight"},

@@ -5,8 +5,8 @@ def create_path(path):
     if not osp.exists(path):
         os.makedirs(path)
 
-num_class = 100
-color_video_root = "E:\datasets\SLR_dataset\S500_color_video"
+num_class = 500
+color_video_root = "/home/liweijie/SLR_dataset/S500_color_video"
 train_list = open("../input/train_list.txt","w")
 val_list = open("../input/val_list.txt","w")
 

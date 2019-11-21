@@ -2,7 +2,7 @@ import argparse
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--video_root",type=str,
-                    default="E:/datasets/SLR_dataset/S500_color_video")
+                    default="/home/liweijie/SLR_dataset/S500_color_video")
 parser.add_argument("--train_file",type=str,
                     default="input/train_list.txt")
 parser.add_argument("--val_file",type=str,
@@ -12,16 +12,17 @@ parser.add_argument('--root_model', type=str,
 
 # parser.add_argument('--arch', type=str, default='resnet34')
 # parser.add_argument('--arch', type=str, default='BNInception')
-parser.add_argument('--arch', type=str, default='Resnet_cbam')
+# parser.add_argument('--arch', type=str, default='Resnet_cbam')
+parser.add_argument('--arch', type=str, default='resnet18')
 
 parser.add_argument('--modality', type=str, default='RGB')
-parser.add_argument('--num_class', type=int, default=100)
+parser.add_argument('--num_class', type=int, default=500)
 parser.add_argument('--hidden_unit', type=int, default=1024)
 # ========================= Learning Configs ==========================
 parser.add_argument('--start_epoch',default=0, type=int)
 parser.add_argument('--epochs', default=10000, type=int, metavar='N',
                     help='number of total epochs to run')
-parser.add_argument('-b', '--batch-size', default=1, type=int,
+parser.add_argument('-b', '--batch-size', default=6, type=int,
                     metavar='N', help='mini-batch size (default: 256)')
 parser.add_argument('--lr', '--learning-rate', default=1e-4, type=float,
                     metavar='LR', help='initial learning rate')
