@@ -72,7 +72,7 @@ class iSLR_Model(nn.Module):
         elif base_model == 'poseattention':
             self.base_model = resnet50(True,num_joints=self.num_joints)
             self.base_model.last_layer_name = 'fc'
-            self.input_size = 512
+            self.input_size = 256
             self.input_mean = [0.485, 0.456, 0.406]
             self.input_std = [0.229, 0.224, 0.225]
 

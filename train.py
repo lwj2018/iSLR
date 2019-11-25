@@ -24,6 +24,8 @@ from tensorboardX import SummaryWriter
 from opts import parser
 from viz_utils import attentionmap_visualize
 
+os.environ["CUDA_VISIBLE_DEVICES"] = "1,2"
+
 def create_path(path):
     if not osp.exists(path):
         os.makedirs(path)
@@ -141,11 +143,12 @@ def main():
     global writer
     # writer = SummaryWriter(logdir='runs/'+args.store_name)
     writer = SummaryWriter(comment=args.store_name)
-    # writer = SummaryWriter()
+    # writer = SummaryWriter()\
+
+    prec1 = validate(val_loader, model, criterion, 0 // args.eval_freq)
 
     for epoch in range(args.start_epoch, args.epochs):
         adjust_learning_rate(optimizer, epoch , args.lr_steps)
-
 
         # train for one epoch
         train(train_loader, model, criterion, optimizer, epoch)
@@ -270,11 +273,12 @@ def validate(val_loader, model, criterion, epoch):
         target.require_grad = True
         target_var = target
         heat_map.require_grad = True
+        heat_map = heat_map.view((-1,)+heat_map.size()[-3:])
 
         # compute output
         output,att_map = model(input_var)
         loss = criterion(output, target_var)
-        l_pose = pose_criterion(att_map, heat_map)
+        l_pose = 100*pose_criterion(att_map, heat_map)
 
         # measure accuracy and record loss
         prec1, prec5 = accuracy(output.data, target, topk=(1,5))

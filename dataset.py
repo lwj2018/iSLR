@@ -145,7 +145,7 @@ class iSLR_Dataset(data.Dataset):
                 Z = (Z-Z.min())/(Z.max()-Z.min())
                 Z = torch.Tensor(Z)
                 return Z
-        N = 16
+        N = 8
         X = np.linspace(0,1,N)
         Y = np.linspace(0,1,N)
         X,Y = np.meshgrid(X,Y)

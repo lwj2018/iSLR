@@ -152,12 +152,16 @@ class ResNet(nn.Module):
         self.layer4 = self._make_layer(block, 512, layers[3], stride=2,
                                        dilate=replace_stride_with_dilation[2])
         self.add_conv1 =  nn.Sequential(
-            nn.Conv2d(2048,1024,3,1,padding=1),
+            nn.Conv2d(2048,128,3,1,padding=1),
+            nn.ReLU(),
+             nn.Conv2d(128,1024,3,1,padding=1),
             nn.ReLU(),
         )
 
         self.add_conv2 =  nn.Sequential(
-            nn.Conv2d(1024,512,3,1,padding=1),
+            nn.Conv2d(1024,128,3,1,padding=1),
+            nn.ReLU(),
+            nn.Conv2d(128,512,3,1,padding=1),
             nn.ReLU(),
         )
 
