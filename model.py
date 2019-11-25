@@ -5,9 +5,9 @@ from torchvision import models
 from torch.nn import functional as F
 from torch.autograd import Variable
 from transforms import *
-from model_resnet import ResidualNet
 from skeleton_model import skeleton_model
 from cnn_model import base_cnn
+from resnet import resnet50
 
 class iSLR_Model(nn.Module):
 
@@ -18,6 +18,8 @@ class iSLR_Model(nn.Module):
                 dropout=0.8,
                 img_feature_dim=256,
                 hidden_size=256,
+                num_joints=4,
+                length=16,
                 partial_bn=True):
         super(iSLR_Model, self).__init__()
         self.num_class = num_class
@@ -26,6 +28,8 @@ class iSLR_Model(nn.Module):
         self.dropout = dropout
         self.img_feature_dim = img_feature_dim
         self.hidden_size = hidden_size
+        self.num_joints = num_joints
+        self.length = length
 
         self._prepare_base_model(base_model)
         feature_dim = self._prepare_new_fc()
@@ -38,12 +42,9 @@ class iSLR_Model(nn.Module):
     def _prepare_new_fc(self):
         if 'vgg' in self.base_model_name:
             feature_dim = getattr(self.base_model, self.base_model.last_layer_name)[0].in_features
-        elif 'res' in self.base_model_name:
+        elif 'res' in self.base_model_name or self.base_model_name == 'BNInception' \
+                or self.base_model_name == 'poseattention':
             feature_dim = getattr(self.base_model, self.base_model.last_layer_name).in_features            
-        elif self.base_model_name == 'BNInception':
-            feature_dim = getattr(self.base_model, self.base_model.last_layer_name).in_features
-        elif self.base_model_name == 'Resnet_cbam':
-            feature_dim = getattr(self.base_model, self.base_model.last_layer_name).in_features
         if self.dropout == 0:
             setattr(self.base_model, self.base_model.last_layer_name, nn.Linear(feature_dim, num_class))
             self.new_fc = None
@@ -68,18 +69,12 @@ class iSLR_Model(nn.Module):
             self.input_mean = [0.485, 0.456, 0.406]
             self.input_std = [0.229, 0.224, 0.225]
 
-        elif base_model == 'Resnet_cbam':
-            self.base_model = ResidualNet("ImageNet",50,1000,'CBAM')
-            checkpoint = torch.load("models/RESNET50_CBAM_new_name_wrap.pth")
-            # restore_param = {k: v for k, v in checkpoint.items()}
-            # self.base_model.state_dict().update(restore_param)
-            state_dict = {".".join(k.split(".")[1:]):v
-                            for k,v in checkpoint['state_dict'].items()}
-            self.base_model.load_state_dict(state_dict)
+        elif base_model == 'poseattention':
+            self.base_model = resnet50(True,num_joints=self.num_joints)
             self.base_model.last_layer_name = 'fc'
-            self.input_size = 224
+            self.input_size = 512
             self.input_mean = [0.485, 0.456, 0.406]
-            self.input_std = [0.229, 0.224, 0.225]            
+            self.input_std = [0.229, 0.224, 0.225]
 
         elif base_model == 'BNInception':
             import model_zoo
@@ -118,10 +113,10 @@ class iSLR_Model(nn.Module):
 
     def _prepare_fc(self):
         if self.hidden_unit>0:
-            self.first_fc = nn.Linear(16*self.img_feature_dim, self.hidden_unit)
+            self.first_fc = nn.Linear(self.length*self.img_feature_dim, self.hidden_unit)
             self.final_fc = nn.Linear(self.hidden_unit, self.num_class)
         else:
-            self.final_fc = nn.Linear(16*self.img_feature_dim, self.num_class)
+            self.final_fc = nn.Linear(self.length*self.img_feature_dim, self.num_class)
 
     def train(self, mode=True):
         """
@@ -218,9 +213,10 @@ class iSLR_Model(nn.Module):
     def forward(self, input):
         if self.modality == 'RGB':
             sample_len = 3
-        base_out = self.base_model(input.view( (-1, sample_len) + input.size()[-2:]) )
-        # if self.base_model_name=="Resnet_cbam":
-        #     self.attention_map = self.base_model.attention_map
+        if self.base_model_name=='poseattention':
+            base_out,att_map = self.base_model(input.view( (-1, sample_len) + input.size()[-2:]) )
+        else:
+            base_out = self.base_model(input.view( (-1, sample_len) + input.size()[-2:]) )
 
         if self.dropout > 0:
             base_out = self.new_fc(base_out)
@@ -230,7 +226,10 @@ class iSLR_Model(nn.Module):
             base_out = self.first_fc(base_out)
         output = self.final_fc(base_out)
         
-        return output
+        if self.base_model_name=='poseattention':
+            return output,att_map
+        else:
+            return output
 
     @property
     def crop_size(self):

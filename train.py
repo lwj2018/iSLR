@@ -22,6 +22,7 @@ import time
 from tensorboardX import SummaryWriter
 
 from opts import parser
+from viz_utils import attentionmap_visualize
 
 def create_path(path):
     if not osp.exists(path):
@@ -56,7 +57,8 @@ def main():
     
     create_path(args.root_model)
     # get model 
-    model = iSLR_Model(args.num_class,hidden_unit=args.hidden_unit,base_model=args.arch)
+    model = iSLR_Model(args.num_class,hidden_unit=args.hidden_unit,base_model=args.arch,\
+                                                num_joints=args.num_joints,length=args.length)
 
     crop_size = model.crop_size
     scale_size = model.scale_size
@@ -94,11 +96,11 @@ def main():
     normalize = GroupNormalize(input_mean,input_std)
 
     train_loader = torch.utils.data.DataLoader(
-        iSLR_Dataset(args.video_root,args.train_file,
+        iSLR_Dataset(args.video_root,args.skeleton_root,args.train_file,
+            length=args.length,
             transform=torchvision.transforms.Compose([
                 # train_augmentation,
-                GroupScale(int(scale_size)),
-                GroupCenterCrop(crop_size),
+                GroupScale((crop_size,crop_size)),
                 Stack(roll=(args.arch in ['BNInception','InceptionV3'])),
                 ToTorchFormatTensor(div=(args.arch not in ['BNInception','InceptionV3'])),
                 normalize,
@@ -110,10 +112,10 @@ def main():
     )
 
     val_loader = torch.utils.data.DataLoader(
-        iSLR_Dataset(args.video_root,args.val_file,
+        iSLR_Dataset(args.video_root,args.skeleton_root,args.val_file,
+            length=args.length,
             transform=torchvision.transforms.Compose([
-                GroupScale(int(scale_size)),
-                GroupCenterCrop(crop_size),
+                GroupScale((crop_size,crop_size)),
                 Stack(roll=(args.arch in ['BNInception','InceptonV3'])),
                 ToTorchFormatTensor(div=(args.arch not in ['BNInception','InceptionV3'])),
                 normalize,
@@ -163,9 +165,11 @@ def main():
             }, is_best)
 
 def train(train_loader, model, criterion, optimizer, epoch):
+    pose_criterion = torch.nn.MSELoss().cuda()
     batch_time = AverageMeter()
     data_time = AverageMeter()
     losses = AverageMeter()
+    pose_losses = AverageMeter()
     top1 = AverageMeter()
     top5 = AverageMeter()
 
@@ -173,27 +177,37 @@ def train(train_loader, model, criterion, optimizer, epoch):
     model.train()
 
     end = time.time()
-    for i, (input, target) in enumerate(train_loader):
+    for i, (input, heat_map, target) in enumerate(train_loader):
         # measure data loading time
         data_time.update(time.time() - end)
 
         target = target.cuda()
+        heat_map = heat_map.cuda()
         # input_var = torch.autograd.Variable(input)
         # target_var = torch.autograd.Variable(target)
         input.require_grad = True
         input_var = input
         target.require_grad = True
         target_var = target
+        heat_map.require_grad = True
+        heat_map = heat_map.view((-1,)+heat_map.size()[-3:])
+        # one_map = heat_map[:,2,:,:].unsqueeze(1)
+        # attentionmap_visualize(input,one_map)
 
         # compute output
-        output = model(input_var)
+        output,att_map = model(input_var)
         loss = criterion(output, target_var)
+        # print(att_map.size())
+        # print(heat_map.size())
+        l_pose = 100*pose_criterion(att_map, heat_map)
+
 
         # attention_map = model.module.base_model.attention_map
 
         # measure accuracy and record loss
         prec1, prec5 = accuracy(output.data, target, topk=(1,5))
         losses.update(loss.item(), input.size(0))
+        pose_losses.update(l_pose.item(),input.size(0))
         top1.update(prec1.item(), input.size(0))
         top5.update(prec5.item(), input.size(0))
 
@@ -201,7 +215,8 @@ def train(train_loader, model, criterion, optimizer, epoch):
         # compute gradient and do SGD step
         optimizer.zero_grad()
 
-        loss.backward()
+        l_total = loss+l_pose
+        l_total.backward()
         # print(attention_map)
 
         if args.clip_gradient is not None:
@@ -218,23 +233,26 @@ def train(train_loader, model, criterion, optimizer, epoch):
         if i % args.print_freq == 0:
             output = ('Epoch: [{0}][{1}/{2}], lr: {lr:.7f}\t'
                     'Time {batch_time.val:.3f}s ({batch_time.avg:.3f}s)\t'
-                    'Data {data_time.val:.3f}s ({data_time.avg:.3f}s)\t'
                     'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
+                    'Lpose {lpose.val:.4f} ({lpose.avg:.4f})\t'
                     'Prec@1 {top1.val:.3f}% ({top1.avg:.3f}%)\t'
                     'Prec@5 {top5.val:.3f}% ({top5.avg:.3f}%)'.format(
                         epoch, i, len(train_loader), batch_time=batch_time,
-                        data_time=data_time, loss=losses, top1=top1, top5=top5, 
+                        loss=losses,lpose=pose_losses, top1=top1, top5=top5, 
                         lr=optimizer.param_groups[-1]['lr']))
             print(output)
 
         writer.add_scalar('train/loss', losses.avg, epoch*len(train_loader)+i)
+        writer.add_scalar('train/loss_pose', pose_losses.avg, epoch*len(train_loader)+i)
         writer.add_scalar('train/acc', top1.avg, epoch*len(train_loader)+i)
 
 
 
 def validate(val_loader, model, criterion, epoch):
+    pose_criterion = torch.nn.MSELoss().cuda()
     batch_time = AverageMeter()
     losses = AverageMeter()
+    pose_losses = AverageMeter()
     top1 = AverageMeter()
     top5 = AverageMeter()
 
@@ -242,23 +260,27 @@ def validate(val_loader, model, criterion, epoch):
     model.eval()
 
     end = time.time()
-    for i, (input, target) in enumerate(val_loader):
+    for i, (input, heat_map, target) in enumerate(val_loader):
         target = target.cuda()
+        heat_map = heat_map.cuda()
         # input_var = torch.autograd.Variable(input)
         # target_var = torch.autograd.Variable(target)
         input.require_grad = True
         input_var = input
         target.require_grad = True
         target_var = target
+        heat_map.require_grad = True
 
         # compute output
-        output = model(input_var)
+        output,att_map = model(input_var)
         loss = criterion(output, target_var)
+        l_pose = pose_criterion(att_map, heat_map)
 
         # measure accuracy and record loss
         prec1, prec5 = accuracy(output.data, target, topk=(1,5))
 
         losses.update(loss.item(), input.size(0))
+        pose_losses.update(l_pose.item(),input.size(0))
         top1.update(prec1.item(), input.size(0))
         top5.update(prec5.item(), input.size(0))
 
@@ -270,10 +292,11 @@ def validate(val_loader, model, criterion, epoch):
             output = ('Test: [{0}/{1}]\t'
                   'Time {batch_time.val:.3f}s ({batch_time.avg:.3f}s)\t'
                   'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
+                    'Lpose {lpose.val:.4f} ({lpose.avg:.4f})\t'
                   'Prec@1 {top1.val:.3f}% ({top1.avg:.3f}%)\t'
                   'Prec@5 {top5.val:.3f}% ({top5.avg:.3f}%)'.format(
                    i, len(val_loader), batch_time=batch_time, loss=losses,
-                   top1=top1, top5=top5))
+                   lpose=pose_losses,top1=top1, top5=top5))
             print(output)
 
         writer.add_scalar('val/acc', top1.avg, epoch*len(val_loader)+i)

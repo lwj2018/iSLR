@@ -14,7 +14,7 @@ def attentionmap_visualize(input, attention_map):
         visualize attention map
     Args:
         input (torch.Tensor[NxC(Lx3)xHxW]): input tensor
-        attention_map (torch.Tensor[LX1XHXW]): attention map
+        attention_map (torch.Tensor[LX1XhXw]): attention map
     '''
     input_mean = np.array([0.485, 0.456, 0.406])
     input_std = np.array([0.229, 0.224, 0.225])

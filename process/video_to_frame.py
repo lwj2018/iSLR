@@ -5,7 +5,7 @@ def create_path(path):
     if not osp.exists(path):
         os.makedirs(path)
 
-color_video_root = "E:\datasets\SLR_dataset\S500_color_video"
+color_video_root = "/home/liweijie/Data/SLR_dataset/S500_color_video"
 # 切换工作目录
 os.chdir(color_video_root)
 color_video_path_list = os.listdir(color_video_root)
@@ -17,7 +17,7 @@ for i,color_video_path in enumerate(color_video_path_list):
     color_video_list = os.listdir(color_video_path)
     color_video_list.sort()
     index = int(color_video_path)
-    if color_video_path == "000238":
+    if int(color_video_path) >= 245:
         for color_video in color_video_list:
             abs_color_video = osp.join(color_video_path,color_video)
             out_color_video_path = abs_color_video.rstrip(".avi")
