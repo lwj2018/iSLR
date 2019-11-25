@@ -66,7 +66,7 @@ class iSLR_Dataset(data.Dataset):
         print('video number:%d'%(len(self.video_list)))
 
     def get_sample_indices(self,num_frames):
-        indices = np.linspace(1,num_frames-2,self.length).astype(int)
+        indices = np.linspace(1,num_frames-1,self.length).astype(int)
         return indices
     
     def _load_data(self, filename):
@@ -95,11 +95,13 @@ class iSLR_Dataset(data.Dataset):
     def __getitem__(self, index):
         record = self.video_list[index]
         images = list()
-        indices = self.get_sample_indices(record.num_frames)
+        mat = self._load_data(record.skeleton_file)
+        num_frames = record.num_frames if record.num_frames<mat.shape[0]\
+            else mat.shape[0]
+        indices = self.get_sample_indices(num_frames)
         for i in indices:
             img = self._load_image(record.path, i)
             images.extend(img)
-        mat = self._load_data(record.skeleton_file)
         mat = mat[indices,:,:]
         
         heat_maps = []
